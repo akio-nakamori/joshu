@@ -1,0 +1,4 @@
+logging
+adbb
+mysql-python
+sqlalchemy
