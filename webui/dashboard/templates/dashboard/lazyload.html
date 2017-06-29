@@ -1,0 +1,9 @@
+{% load staticfiles %}
+<script src="{% static 'js/lazyload.min.js' %}"></script>
+<script>
+    (function() {
+        new LazyLoad({
+            elements_selector: ".lazy"
+        });
+    }());
+</script>

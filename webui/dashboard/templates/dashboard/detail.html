@@ -1,0 +1,126 @@
+{% load staticfiles %}
+<html lang="en">
+<head>
+    {% include "dashboard/header.html" %}
+</head>
+<body>
+
+<!-- navigation -->
+{% include "dashboard/navigation.html" %}
+<!-- navigation end -->
+
+<!-- breadcrumb -->
+<nav class="breadcrumb">
+    <a class="breadcrumb-item" href="../">Home</a> /
+    <span class="breadcrumb-item active">{{ anime.title }} ({{ anime.aid }})</span>
+</nav>
+<!-- breadcrumb end -->
+
+<!-- content -->
+<div class="container-fluid">
+    <!-- info -->
+    <div class="row">
+        <div class="col-lg-8 col-md-4 col-sm-6 col-xs-12">
+            <div>
+                <h1>{{ anime.title }}<small>({{ anime.aid }})</small></h1>
+                <h4>Year: {{ anime.year }}</h4>
+                <h4>Airing: {{ anime.air_date }} - {{ anime.end_date }}</h4>
+                <h5>Type: {{ anime.type }}</h5>
+                <h5>Episodes: {{ anime.nr_of_episodes }}</h5>
+                <h5>Rating: {{ anime.temp_rating }} (votes: {{ anime.temp_vote_count }})</h5>
+                {% if anime.is_18_restricted == 1 %}
+                <h5><b>Hentai</b></h5>
+                {% endif %}
+                {% if anime.description %}
+                <h5>Description: {{ anime.description }} </h5>
+                {% endif %}
+                <h6>update: {{ anime.updated }}</h6>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <div>
+                <img class="img-responsive thumbnail" src="../../{{ anime.picture }}">
+            </div>
+        </div>
+
+    </div>
+    <!-- info end -->
+
+    <!-- new interface -->
+    <div class="row">
+        <div class="col-lg-8 col-md-10 col-sm-12 col-xs-12">
+            <div id="menu">
+                <div class="panel list-group">
+                    <!-- episodes -->
+                    {% if anime_episode %}
+                    <a href="#episode" class="list-group-item" data-toggle="collapse" data-parent="#menu">Episodes <span class="badge pull-right">{{ anime_episode|length }}</span></a>
+                    <div id="episode" class="sublinks collapse">
+                        <div class="table-responsive">
+                            <table class="ep-list table-striped">
+                                <tr>
+                                    <th width="5%">no.</th>
+                                    <th width="90%">title</th>
+                                    <th width="5%">length</th>
+                                </tr>
+                                {% for ep in anime_episode %}
+                                <tr>
+                                    <td>{{ ep.epno }}</td>
+                                    <td>{{ ep.title_eng }}</td>
+                                    <td>{{ ep.length }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- related -->
+                    {% if anime_relation %}
+                    <a href="#related" class="list-group-item" data-toggle="collapse" data-parent="#menu">Related <span class="badge pull-right">{{ anime_relation|length }}</span></a>
+                    <div id="related" class="sublinks collapse">
+                        <!-- related item -->
+                        {% for x, y in anime_relation %}
+                        <div class="related-show">
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8">
+                                <p>
+                                    <p><a href="../{{ x.aid }}"><b>{{ x.title }}</b> <small>({{ x.aid }})</small></a></p>
+                                    <p>Relation: {{ y }}</p>
+                                    <p>Year: {{ x.year }}</p>
+                                    <p>Airing: {{ x.air_date }} - {{ x.end_date }}</p>
+                                    <p>Type: {{ x.type }}</p>
+                                    <p>Episodes: {{ x.nr_of_episodes }}</p>
+                                    <p>Rating: {{ x.temp_rating }} (votes: {{ x.temp_vote_count }})</p>
+                                    {% if x.is_18_restricted == 1 %}
+                                    <p><b>Hentai</b></p>
+                                    {% endif %}
+                                    <h6>update: {{ x.updated }}</h6>
+                                </p>
+                            </div>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                                <p>
+                                    <img class="thumbnail img-responsive" src="../../{{ x.picture }}">
+                                </p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <!-- related item end -->
+                    </div>
+                    {% else %}
+                    <!--
+                    <div>Upssss.</div>
+                    -->
+                    {% endif %}
+                    <!-- related end -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- new interface end -->
+
+</div>
+<!-- content end -->
+
+{% include "dashboard/footer.html" %}
+</body>
+</html>

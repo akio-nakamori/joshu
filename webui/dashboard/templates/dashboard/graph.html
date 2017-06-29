@@ -1,0 +1,232 @@
+{% load staticfiles %}
+<html lang="en">
+<head>
+    {% include "dashboard/header.html" %}
+
+<style>
+.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 2px;
+}
+
+#licensing {
+  //fill: green;
+}
+
+.link.licensing {
+  stroke: green;
+}
+
+.link.resolved {
+  stroke-dasharray: 0,2 1;
+}
+
+circle {
+  //fill: #ccc;
+  //stroke: #333;
+  //stroke-width: 1.5px;
+}
+
+text {
+  font: 20px sans-serif;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+}
+</style>
+
+
+</head>
+<body>
+
+<!-- navigation -->
+{% include "dashboard/navigation.html" %}
+<!-- navigation end -->
+
+<!-- breadcrumb -->
+<nav class="breadcrumb">
+    <a class="breadcrumb-item" href="../../">Home</a> /
+    <a class="breadcrumb-item" href="../">{{ anime.title }} ({{ anime.aid }})</a> /
+    <span class="breadcrumb-item active">Graph</span>
+</nav>
+<!-- breadcrumb end -->
+
+<!-- content -->
+<div class="container-fluid">
+
+<svg id="mySvg" width="80" height="80">
+    <defs id="mdef">
+        <pattern id="image" x="0" y="0" height="40" width="40">
+            <image x="0" y="0" width="40" height="40" xlink:href="http://www.e-pint.com/epint.jpg"></image>
+        </pattern>
+    </defs>
+</svg>
+
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+// http://blog.thomsonreuters.com/index.php/mobile-patent-suits-graphic-of-the-day/
+var links = [
+
+// root
+// { source: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "../../../{{anime.picture}}" },
+
+//anime_prequel
+{% if anime_prequel %}
+    {% for a_p in anime_prequel %}
+        { source: "{{anime.title}} ({{anime.aid}})", target: "{{a_p.title}} ({{a_p.aid}})", type: "licensing", pic: "../../../{{anime.picture}}" },
+    {%endfor %}
+{% endif %}
+
+//anime_sequel
+{% if anime_sequel %}
+    {% for a_s in anime_sequel %}
+        { source: "{{a_s.title}} ({{a_s.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "../../../{{a_s.picture}}" },
+    {% endfor %}
+{% endif %}
+
+//anime_same_setting
+{% if anime_same_setting %}
+{% for ass in anime_same_setting %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+//anime_alternative_setting
+{% if anime_alternative_setting %}
+{% for ass in anime_alternative_setting %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+//anime_alternative_version
+{% if anime_alternative_version %}
+{% for ass in anime_alternative_version %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+//anime_side_story
+{% if anime_side_story %}
+{% for ass in anime_side_story %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+//anime_parent_story
+{% if anime_parent_story %}
+{% for ass in anime_parent_story %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+//anime_summary
+{% if anime_summary %}
+{% for ass in anime_summary %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+//anime_full_story
+{% if anime_full_story %}
+{% for ass in anime_full_story %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+//anime_other
+{% if anime_other %}
+{% for ass in anime_other %}
+{ source: "{{ass.title}} ({{ass.aid}})", target: "{{anime.title}} ({{anime.aid}})", type: "licensing", pic: "{{ass.picture}}" },
+{% endfor %}
+{% endif %}
+
+];
+
+var nodes = {};
+
+// Compute the distinct nodes from the links.
+links.forEach(function(link) {
+  link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+  link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+});
+
+var width = 900, height = 800;
+
+var force = d3.layout.force()
+    .nodes(d3.values(nodes))
+    .theta(1)
+    .gravity(0.1)
+    .links(links)
+    .size([width, height])
+    .linkDistance(200)
+    .charge(-300)
+    .on("tick", tick)
+    .start();
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+// Per-type markers, as they don't inherit styles.
+svg.append("defs").selectAll("marker")
+    .data(["suit", "licensing", "resolved"])
+  .enter().append("marker")
+    .attr("id", function(d) { return d; })
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 24)
+    .attr("refY", -2)
+    .attr("markerWidth", 10)
+    .attr("markerHeight", 10)
+    .attr("orient", "auto")
+  .append("path")
+    .attr("d", "M0,-5L10,0L0,5");
+
+var path = svg.append("g").selectAll("path")
+    .data(force.links())
+  .enter().append("path")
+    .attr("class", function(d) { return "link " + d.type; })
+    .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+
+//circle config
+var circle = svg.append("g").selectAll("circle")
+    .data(force.nodes())
+  .enter().append("circle")
+  .style("fill", "url(#image)")
+    .attr("r", 30)
+    .call(force.drag);
+
+//text config
+var text = svg.append("g").selectAll("text")
+    .data(force.nodes())
+  .enter().append("text")
+    .attr("x", 8)
+    .attr("y", ".31em")
+    .text(function(d) { return d.name; });
+
+// Use elliptical arc path segments to doubly-encode directionality.
+function tick() {
+  path.attr("d", linkArc);
+  circle.attr("transform", transform);
+  text.attr("transform", transform);
+}
+
+function linkArc(d) {
+  var dx = d.target.x - d.source.x,
+      dy = d.target.y - d.source.y,
+      dr = Math.sqrt(dx * dx + dy * dy);
+  return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+}
+
+function transform(d) {
+  return "translate(" + d.x + "," + d.y + ")";
+}
+
+</script>
+
+</div>
+<!-- content end -->
+
+{% include "dashboard/footer.html" %}
+</body>
+</html>

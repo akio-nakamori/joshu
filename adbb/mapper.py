@@ -1,0 +1,304 @@
+#!/usr/bin/env python
+#
+# This file is part of adbb.
+#
+# adbb is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# adbb is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with adbb.  If not, see <http://www.gnu.org/licenses/>.
+from random import shuffle
+import datetime
+
+_blacklist = ('unused', 'retired', 'reserved', 'not_implemented')
+
+# only change this if the api changes
+anime_map_a_converters = {
+    'aid': int,
+    'nr_of_episodes': int,
+    'highest_episode_number': int,
+    'special_ep_count': int,
+    'air_date': lambda x: datetime.date(1970, 1, 1) + datetime.timedelta(seconds=int(x)) if x and int(x) else None,
+    'end_date': lambda x: datetime.date(1970, 1, 1) + datetime.timedelta(seconds=int(x)) if x and int(x) else None,
+    'rating': lambda x: int(x) / 100 if x else None,
+    'vote_count': int,
+    'temp_rating': lambda x: int(x) / 100 if x else None,
+    'temp_vote_count': int,
+    'average_review_rating': lambda x: int(x) / 100 if x else None,
+    'review_count': int,
+    'is_18_restricted': lambda x: x == "1",
+    'ann_id': int,
+    'allcinema_id': int,
+    'tag_name': lambda x: x or None,
+    'tag_id': lambda x: x or None,
+    'tag_weight': lambda x: x or None,
+    'anidb_updated': lambda x: datetime.datetime.fromtimestamp(int(x)) if x and int(x) else None,
+    'character_id': lambda x: x or None,
+    'special_count': int,
+    'credit_count': int,
+    'other_count': int,
+    'trailer_count': int,
+    'parody_count': int
+}
+
+mylist_state_map = {
+    '0': 'unknown',
+    '1': 'on hdd',
+    '2': 'on cd',
+    '3': 'deleted'
+}
+
+mylist_filestate_map = {
+    '0': 'normal/original',
+    '1': 'corrupted version/invalid crc',
+    '2': 'self edited',
+    '10': 'self ripped',
+    '11': 'on dvd',
+    '12': 'on vhs',
+    '13': 'on tv',
+    '14': 'in theaters',
+    '15': 'streamed',
+    '100': 'other'
+}
+
+file_map_f_converters = {
+    'fid': int,
+    'aid': int,
+    'eid': int,
+    'lid': int,
+    'gid': int,
+    'is_deprecated': lambda x: x == '1',
+    'size': int,
+    'ed2khash': lambda x: x or None,
+    'md5': lambda x: x or None,
+    'sh1': lambda x: x or None,
+    'crc32': lambda x: x or None,
+    'color_depth': lambda x: x or None,
+    'quality': lambda x: x or None,
+    'source': lambda x: x or None,
+    'audio_codec': lambda x: x or None,
+    'audio_bitrate': lambda x: x or None,
+    'video_codec': lambda x: x or None,
+    'video_bitrate': lambda x: x or None,
+    'resolution': lambda x: x or None,
+    'filename': lambda x: x or None,
+    'audio_lang': lambda x: x or None,
+    'sub_lang': lambda x: x or None,
+    'length_in_seconds': int,
+    'description': lambda x: x or None,
+    'aired_date': lambda x: datetime.date(1970, 1, 1) + datetime.timedelta(seconds=int(x)) if x and int(x) else None,
+    'mylist_state': lambda x: mylist_state_map[x] if x else None,
+    'mylist_filestate': lambda x: mylist_filestate_map[x] if x else None,
+    'mylist_viewed': lambda x: x == '1',
+    'mylist_viewdate': lambda x: datetime.datetime.fromtimestamp(int(x)) if x and int(x) else None,
+    'mylist_storage': lambda x: x or None,
+    'mylist_source': lambda x: x or None,
+    'mylist_other': lambda x: x or None
+}
+
+episode_type_map = {
+    '1': 'regular',
+    '2': 'special',
+    '3': 'credit',
+    '4': 'trailer',
+    '5': 'parody',
+    '6': 'other'
+}
+
+episode_map_converters = {
+    'eid': int,
+    'aid': int,
+    'length': int,
+    'rating': lambda x: int(x) / 100 if x else None,
+    'votes': int,
+    'aired': lambda x: datetime.date(1970, 1, 1) + datetime.timedelta(seconds=int(x)) if x and int(x) else None,
+    'type': lambda x: episode_type_map[x] if x else None,
+}
+
+mylist_map_converters = {
+    'lid': int,
+    'fid': int,
+    'eid': int,
+    'aid': int,
+    'gid': int,
+    'mylist_state': lambda x: mylist_state_map[x] if x else None,
+    'mylist_viewdate': lambda x: datetime.datetime.fromtimestamp(int(x)) if x and int(x) else None,
+    'mylist_storage': lambda x: x or None,
+    'mylist_source': lambda x: x or None,
+    'mylist_other': lambda x: x or None
+}
+
+anime_relation_map = {
+    "1": "sequel",
+    "2": "prequel",
+    "11": "same setting",
+    "12": "alternative setting",
+    "21": "alternative setting",
+    "22": "alternative setting",
+    "31": "alternative version",
+    "32": "alternative version",
+    "41": "music video",
+    "42": "character",
+    "51": "side story",
+    "52": "parent story",
+    "61": "summary",
+    "62": "full story",
+    "100": "other"
+}
+
+anime_map_a = [
+    # byte1
+    'aid', 'unused', 'year', 'type',
+    'related_aid_list', 'related_aid_type', 'retired', 'retired',
+    # byte2 romaji/kanji/english/other/short/synonym/ret/ret
+    'not_implemented', 'not_implemented', 'not_implemented', 'not_implemented',
+    'not_implemented', 'not_implemented', 'retired', 'retired',
+    # byte3
+    'nr_of_episodes', 'highest_episode_number', 'special_ep_count', 'air_date',
+    'end_date', 'url', 'picname', 'retired',
+    # byte4 not_implemented = awards
+    'rating', 'vote_count', 'temp_rating', 'temp_vote_count',
+    'average_review_rating', 'review_count', 'not_implemented', 'is_18_restricted',
+    # byte5
+    'retired', 'ann_id', 'allcinema_id', 'animenfo_id',
+    'tag_name', 'tag_id', 'tag_weight', 'anidb_updated',
+    # byte6
+    'character_id', 'retired', 'retired', 'retired',
+    'unused', 'unused', 'unused', 'unused',
+    # byte7
+    'special_count', 'credit_count', 'other_count', 'trailer_count',
+    'parody_count', 'unused', 'unused', 'unused'
+]
+
+file_map_f = [
+    # byte1
+    'unused', 'aid', 'eid', 'gid',
+    'lid', 'not_implemented', 'is_deprecated', 'state',
+    # byte2
+    'size', 'ed2khash', 'md5', 'sh1',
+    'crc32', 'unused', 'color_depth', 'reserved',
+    # byte3
+    'quality', 'source', 'audio_codec', 'audio_bitrate',
+    'video_codec', 'video_bitrate', 'resolution', 'filename',
+    # byte4
+    'audio_lang', 'sub_lang', 'length_in_seconds', 'description',
+    'aired_date', 'unused', 'unused', 'not_implemented',
+    # byte5
+    'mylist_state', 'mylist_filestate', 'mylist_viewed', 'mylist_viewdate',
+    'mylist_storage', 'mylist_source', 'mylist_other', 'unused'
+]
+
+file_map_a = [
+    # byte1
+    'anime_total_episodes', 'highest_episode_number', 'year', 'type',
+    'related_aid_list', 'related_aid_type', 'category_list', 'reserved',
+    # byte2
+    'romaji_name', 'kanji_name', 'english_name', 'other_name',
+    'short_name_list', 'synonym_list', 'retired', 'retired',
+    # byte3
+    'epno', 'ep_name', 'ep_romaji_name', 'ep_kanji_name',
+    'episode_rating', 'episode_vote_count', 'unused', 'unused',
+    # byte4
+    'group_name', 'group_short_name', 'unused', 'unused',
+    'unused', 'unused', 'unused', 'date_aid_record_updated'
+]
+
+
+def getAnimeBitsA(amask):
+    bitmap = anime_map_a
+    return _getBitChain(bitmap, amask)
+
+
+def getAnimeCodesA(aBitChain):
+    amap = anime_map_a
+    return _getCodes(amap, aBitChain)
+
+
+def getFileBitsF(fmask):
+    fmap = file_map_f
+    return _getBitChain(fmap, fmask)
+
+
+def getFileCodesF(bitChainF):
+    fmap = file_map_f
+    return _getCodes(fmap, bitChainF)
+
+
+def getFileBitsA(amask):
+    amap = file_map_a
+    return _getBitChain(amap, amask)
+
+
+def getFileCodesA(bitChainA):
+    amap = file_map_a
+    return _getCodes(amap, bitChainA)
+
+
+def _getBitChain(attrmap, wanted):
+    """Return an hex string with the correct bit set corresponding to the wanted fields in the map
+    """
+    bit = 0
+    for index, field in enumerate(attrmap):
+        if field in wanted and not field in _blacklist:
+            bit = bit ^ (1 << len(attrmap) - index - 1)
+
+    bit = str(hex(bit)).lstrip("0x").rstrip("L")
+    bit = ''.join(["0" for unused in range(int(len(attrmap) / 4) - len(bit))]) + bit
+    return bit
+
+
+def _getCodes(attrmap, bitChain):
+    """Returns a list with the corresponding fields as set in the bitChain (hex string)
+    """
+    codeList = []
+    bitChain = int(bitChain, 16)
+    mapLength = len(attrmap)
+    for i in reversed(range(mapLength)):
+        if bitChain & (2 ** i):
+            codeList.append(attrmap[mapLength - i - 1])
+    return codeList
+
+
+def checkMapping(verbos=False):
+    print("------")
+    print("File F: " + str(checkMapFileF(verbos)))
+    print("------")
+    print("File A: " + str(checkMapFileA(verbos)))
+
+
+def checkMapFileF(verbos=False):
+    getGeneralMap = file_map_f
+    getBits = lambda x: getFileBitsF(x)
+    getCodes = lambda x: getFileCodesF(x)
+    return _checkMapGeneral(getGeneralMap, getBits, getCodes, verbos=verbos)
+
+
+def checkMapFileA(verbos=False):
+    getGeneralMap = file_map_a
+    getBits = lambda x: getFileBitsA(x)
+    getCodes = lambda x: getFileCodesA(x)
+    return _checkMapGeneral(getGeneralMap, getBits, getCodes, verbos=verbos)
+
+
+def _checkMapGeneral(getGeneralMap, getBits, getCodes, verbos=False):
+    attrmap = getGeneralMap()
+    shuffle(attrmap)
+    mask = [elem for elem in attrmap if elem not in _blacklist][:5]
+    bits = getBits(mask)
+    mask_re = getCodes(bits)
+    bits_re = getBits(mask_re)
+    if verbos:
+        print(mask)
+        print(mask_re)
+        print(bits)
+        print(bits_re)
+        print("bits are:" + str((bits_re == bits)))
+        print("map is :" + str((sorted(mask_re) == sorted(mask))))
+    return (bits_re == bits) and sorted(mask_re) == sorted(mask)

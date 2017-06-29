@@ -2,3 +2,7 @@ logging
 adbb
 mysql-python
 sqlalchemy
+SQLAlchemy-Utils
+pymysql
+django
+requests
